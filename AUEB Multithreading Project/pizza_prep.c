@@ -95,8 +95,10 @@ int main(int argc, char* argv[]){
     pthread_cond_destroy(&cond_packer);
     pthread_cond_destroy(&cond_deliverer);
 
+
+    int succesful_orders = CUSTOMER_N-failed_orders;
     printf("\nΣτατιστικά :\n");
-    printf("Έσοδα: %d\nΕπιτυχημένες παραγγελίες: %d\nΑποτυχημένες παραγγελίες:  %d\n",income, CUSTOMER_N-failed_orders, failed_orders);
+    printf("Έσοδα: %d\nΕπιτυχημένες παραγγελίες: %d\nΑποτυχημένες παραγγελίες:  %d\n",income, succesful_orders, failed_orders);
     printf("Μέσος χρόνος αναμονής πελατών: %d\nΜέγιστος χρόνος αναμονής πελατών: %d\n",sum_wait_time/CUSTOMER_N, max_wait_time);
     printf("Μέσος χρόνος εξυπηρέτησης πελατών: %d\nΜέγιστος χρόνος εξυπηρέτησης πελατών: %d\n",sum_service_time/succesful_orders, max_service_time);
     printf("Μέσος χρόνος κρυώματος των παραγγελιών: %d\nΜέγιστος χρόνος κρυώματος των παραγγελιών: %d\n",sum_cooling_time/succesful_orders, max_cooling_time);
@@ -131,8 +133,11 @@ void *order(void *x){
     pthread_mutex_unlock(&lock_tel);
     pthread_cond_signal(&cond_tel);
 
+    sleep(rand_r(&seed) % PAYMENT_HIGH_T + PAYMENT_LOW_T );
+
     pthread_mutex_lock(&lock_stats);
     clock_gettime(CLOCK_REALTIME, &waiting_time);
+
     int real_waiting_time = waiting_time.tv_sec - start_of_thread.tv_sec;
     sum_wait_time = sum_wait_time + real_waiting_time;
     if (real_waiting_time > max_wait_time){
@@ -143,9 +148,6 @@ void *order(void *x){
     int pizza_n = (rand_r(&seed) % ORDER_HIGH_N + ORDER_LOW_N);
     int card_accepted = rand_r(&seed) % 100;
 	
-    
-    sleep(rand_r(&seed) % PAYMENT_HIGH_T + PAYMENT_LOW_T );
-    
 
     if(card_accepted > 0 && card_accepted <= FAIL_P){
 
@@ -252,14 +254,17 @@ void *order(void *x){
 
         pthread_mutex_lock(&lock_stats);
         clock_gettime(CLOCK_REALTIME, &service_time);
+
         int real_service_time = service_time.tv_sec - start_of_thread.tv_sec;
         sum_service_time = sum_service_time + real_service_time;
+
         if(real_service_time > max_service_time){
             max_service_time = real_service_time;
         }
 
         int real_cooling_time = real_service_time - real_baking_time;
         sum_cooling_time = sum_cooling_time + real_cooling_time;
+
         if(real_cooling_time > max_cooling_time){
             max_cooling_time = real_cooling_time;
         }
@@ -273,7 +278,6 @@ void *order(void *x){
 
         pthread_mutex_lock(&lock_deliverer);
         del_available++;
-    
         pthread_mutex_unlock(&lock_deliverer);
         pthread_cond_signal(&cond_deliverer);
     }
